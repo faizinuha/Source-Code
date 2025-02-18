@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2 class="text-center">Selamat Datang di Website Source Code Kami ⚡</h2>
+      <hr />
+      <p class="text-muted">
+        Selamat datang di website kami yang menyediakan source code berbagai
+        macam produk dan layanan. Kami sangat senang menerima kritik, saran, dan
+        keluhan Anda. Silahkan tinggalkan komentar di bawah ini.
+      </p>
+      <hr />
+
+      <h4>Langkah-langkah Instalasi</h4>
+      <p>Sebelum kita lanjut, silakan instal beberapa komponen berikut:</p>
+
+      <ol class="list-group list-group-numbered">
+        <li class="list-group-item">
+          <strong>Git Clone:</strong>
+          <code> https://github.com/faizinuha/Gallery_Ujian_Ukk.git</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Install Composer:</strong>
+          <a href="https://getcomposer.org/" target="_blank"
+            >Download Composer</a
+          >
+          lalu jalankan perintah:
+          <code>composer install</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Install Laravel UI:</strong>
+          <code>composer require laravel/ui</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Install Laravel UI Bootstrap:</strong>
+          <code>php artisan ui bootstrap</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Install Laravel Livewire:</strong>
+          <code>composer required livewire/livewire</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Install Laravel Dependencies:</strong>
+          <code>npm install && npm run dev</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Setting Database:</strong>
+          <code>php artisan migrate</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Jalankan Project:</strong>
+          <code>php artisan serve</code>
+        </li>
+      </ol>
+      <hr />
+      <h4>Albums</h4>
+      <p>Install Komponen Tersebut:</p>
+      <ul class="list-group">
+        <li class="list-group-item">
+          <strong>Buat Model dan Migrasi:</strong>
+          <code id="code4"
+            >php artisan make:controller AlbumController -mcr</code
+          >
+        </li>
+      </ul>
+      <hr />
+      <h4>Schema Migrasi</h4>
+      <pre><code>
+public function up(): void {
+    Schema::create('albums', function (Blueprint $table) {
+        $table->id('AlbumID');
+        $table->string('NamaAlbum', 255);
+        $table->text('Deskripsi');
+        $table->date('TanggalDibuat');
+        $table->timestamps();
+        $table->unsignedBigInteger('UserID');
+        $table->foreign('UserID')->references('id')->on('users')->onDelete('cascade');
+    });
+}
+      </code></pre>
+      <hr />
+      <h4>Model Album</h4>
+      <pre><code>
+        
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Album extends Model
+{
+    // Specify the table name if it's different from the default (plural of model name)
+    protected $table = 'albums';
+
+    // Define the primary key if it's different from the default 'id'
+    protected $primaryKey = 'AlbumID';
+
+    // Allow mass assignment for the following fields
+    protected $fillable = [
+        'NamaAlbum',
+        'Deskripsi',
+        'TanggalDibuat',
+        'UserID', // If you want to mass assign the user ID as well
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'UserID');
+    }
+
+    public function fotos()
+    {
+        return $this->hasMany(Foto::class, 'AlbumID');
+    }
+}
+      </code></pre>
+      <hr />
+      <h4>Controller Album</h4>
+      <code>
+        <pre>
+namespace App\Http\Controllers;
+
+use App\Models\Album;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class AlbumController extends Controller
+{
+    public function index()
+    {
+        $albums = Album::where('UserID', Auth::id())->get();
+        return view('albums.index', compact('albums'));
+    }
+    public function create()
+    {
+        $albums = Album::where('UserID', Auth::id())->get(); // Get the albums for the logged-in user
+        return view('albums.create', compact('albums')); // Pass the albums to the view
+    }
+
+    public function store(Request $request)
+    {
+        $validatedData = $request->validate(
+            [
+                'NamaAlbum' => 'required|string|max:255|unique:albums,NamaAlbum',
+                'Deskripsi' => 'required|string',
+                'TanggalDibuat' => 'required|date',
+            ],
+            [
+                'NamaAlbum.required' => 'Nama album wajib diisi',
+                'NamaAlbum.unique' => 'Nama album sudah ada',
+                'Deskripsi.required' => 'Deskripsi wajib diisi',
+                'TanggalDibuat.required' => 'Tanggal dibuat wajib diisi',
+            ]
+        );
+
+        Album::create([
+            'NamaAlbum' => $validatedData['NamaAlbum'],
+            'Deskripsi' => $validatedData['Deskripsi'],
+            'TanggalDibuat' => $validatedData['TanggalDibuat'],
+            'UserID' => Auth::id(),
+        ]);
+
+        return redirect()->route('albums.index')->with('success', 'Album berhasil dibuat!');
+    }
+
+    public function show($albumId)
+    {
+        // Ambil album berdasarkan ID
+        $album = Album::with('fotos')->findOrFail($albumId);
+
+        // Kembalikan ke view album.show dengan membawa data album
+        return view('albums.show', compact('album'));
+    }
+
+
+
+    public function edit($id)
+    {
+        $album = Album::findOrFail($id);
+        return view('albums.edit', compact('album'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'NamaAlbum' => 'required|string|max:255',
+            'Deskripsi' => 'required',
+            'TanggalDibuat' => 'required|date',
+        ]);
+
+        $album = Album::findOrFail($id);
+        $album->update($request->all());
+
+        return redirect()->route('albums.index')->with('success', 'Album berhasil diperbarui!');
+    }
+
+    public function destroy($id)
+    {
+        $album = Album::findOrFail($id);
+        $album->delete();
+
+        return redirect()->route('albums.index')->with('success', 'Album berhasil dihapus!');
+    }
+}
+      <a href="Albums.zip" download="Albums.zip">Download View Albums</a>
+        </pre>
+      </code>
+      <hr />
+      <h4>Fotos</h4>
+      <p>Ikuti DI bawah</p>
+      <ul class="list-group">
+        <li class="list-group-item">
+          <strong>Buat Model dan Migrasi:</strong>
+          <strong>php artisan storage:link:</strong>
+          <code id="code4"
+            >php artisan make:controller FotoController -mcr</code
+          >
+        </li>
+      </ul>
+      <pre>
+        <code>
+          Schema::create('fotos', function (Blueprint $table) {
+            $table->id('FotoID');
+            $table->string('JudulFoto', 255);
+            $table->text('DeskripsiFoto');
+            $table->date('TanggalUnggah');
+            $table->string('LokasiFile', 255);
+            $table->unsignedBigInteger('AlbumID');
+            $table->unsignedBigInteger('UserID');
+            $table->timestamps();
+
+            $table->foreign('AlbumID')->references('AlbumID')->on('albums')->onDelete('cascade');
+            $table->foreign('UserID')->references('UserID')->on('users')->onDelete('cascade');
+        });
+        </code>
+      </pre>
+      <hr />
+      <h4>Model Foto</h4>
+      <pre>
+        <code>
+          namespace App\Models;
+          use Illuminate\Database\Eloquent\Model;
+          class Foto extends Model
+          {
+              protected $table = 'fotos';
+              protected $primaryKey = 'FotoID';
+              protected $fillable = [
+                  'JudulFoto',
+                  'DeskripsiFoto',
+                  'TanggalUnggah',
+                  'LokasiFile',
+                  'AlbumID',
+                  'UserID',
+              ];
+              public function album()
+              {
+                  return $this->belongsTo(Album::class, 'AlbumID');
+              }
+              public function user()
+              {
+                  return $this->belongsTo(User::class, 'UserID');
+              }
+          }
+        </code>
+      </pre>
+      <hr />
+      <h4>Controller Foto</h4>
+      <code>
+        <pre>
+        
+namespace App\Http\Controllers;
+
+use App\Models\Foto;
+use App\Models\Album;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\KomentarFoto;
+
+class FotosController extends Controller
+{
+
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+        $fotos = Foto::where('JudulFoto', 'LIKE', '%' . $query . '%')->get();
+
+        return view('fotos.search', compact('fotos', 'query'));
+    }
+    // Menampilkan daftar foto berdasarkan Album dan User yang sedang login
+    public function index()
+    {
+        $fotos = Foto::where('UserID', Auth::id())->get();
+        return view('fotos.index', compact('fotos'));
+    }
+
+    // Menampilkan form untuk membuat foto baru
+    public function create()
+    {
+        // Mengambil semua album yang dimiliki oleh user yang sedang login
+        $albums = Album::where('UserID', Auth::id())->get();
+        return view('fotos.create', compact('albums'));
+    }
+
+    // Menyimpan foto yang baru dibuat
+    public function store(Request $request)
+    {
+        $request->validate([
+            'JudulFoto' => 'required|string|max:255',
+            'DeskripsiFoto' => 'required',
+            'TanggalUnggah' => 'required|date',
+            'LokasiFile' => 'required|file|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validate image files
+            'AlbumID' => 'required|exists:albums,AlbumID',
+        ]);
+
+        // Handle file upload
+        if ($request->hasFile('LokasiFile')) {
+            $file = $request->file('LokasiFile');
+            $filePath = $file->store('fotos', 'public');  // Store the file in storage/app/public/fotos directory
+        }
+
+        Foto::create([
+            'JudulFoto' => $request->JudulFoto,
+            'DeskripsiFoto' => $request->DeskripsiFoto,
+            'TanggalUnggah' => $request->TanggalUnggah,
+            'LokasiFile' => $filePath ?? null,  // Store the file path
+            'AlbumID' => $request->AlbumID,
+            'UserID' => Auth::id(),
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'Foto berhasil diunggah!');
+    }
+
+    // Menampilkan detail foto berdasarkan ID
+    public function show($id)
+    {
+        $foto = Foto::findOrFail($id);
+        $fotos = Foto::where('FotoId', '!=', $foto->FotoID)->get();
+        $komentars = KomentarFoto::where('FotoID', $id)->get(); // Mengambil semua komentar untuk foto tertentu
+        return view('fotos.show', compact('foto', 'komentars','fotos')); // Pastikan untuk memakai plural untuk komentar
+    }
+
+    // Menampilkan form untuk mengedit foto
+    public function edit($id)
+    {
+        $foto = Foto::findOrFail($id);
+
+        // Pastikan foto milik user yang sedang login
+        if ($foto->UserID !== Auth::id()) {
+            return redirect()->route('fotos.index')->with('error', 'Unauthorized access');
+        }
+
+        // Mengambil album yang dimiliki oleh user
+        $albums = Album::where('UserID', Auth::id())->get();
+        return view('fotos.edit', compact('foto', 'albums'));
+    }
+
+    // Memperbarui data foto
+    public function update(Request $request, $id)
+    {
+        // Validate incoming request data
+        $request->validate([
+            'JudulFoto' => 'required|string|max:255',
+            'DeskripsiFoto' => 'required',
+            'TanggalUnggah' => 'required|date',
+            'LokasiFile' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:2048',  // Validate image files if provided
+            'AlbumID' => 'required|exists:albums,AlbumID', // Ensure AlbumID exists in the albums table
+        ]);
+
+        // Find the photo by ID
+        $foto = Foto::findOrFail($id);
+
+        // Make sure the photo belongs to the currently logged-in user
+        if ($foto->UserID !== Auth::id()) {
+            return redirect()->route('fotos.index')->with('error', 'Unauthorized access');
+        }
+
+        // Handle file upload if a new file is uploaded
+        if ($request->hasFile('LokasiFile')) {
+            // Delete the old file if it exists
+            if (file_exists(storage_path('app/public/' . $foto->LokasiFile))) {
+                unlink(storage_path('app/public/' . $foto->LokasiFile));
+            }
+
+            // Store the new file
+            $file = $request->file('LokasiFile');
+            $filePath = $file->store('fotos', 'public');
+        } else {
+            // Retain the old file if no new file is uploaded
+            $filePath = $foto->LokasiFile;
+        }
+
+        // Update the photo data
+        $foto->update([
+            'JudulFoto' => $request->JudulFoto,
+            'DeskripsiFoto' => $request->DeskripsiFoto,
+            'TanggalUnggah' => $request->TanggalUnggah,
+            'LokasiFile' => $filePath, // Store the new file path or retain the old one
+            'AlbumID' => $request->AlbumID,
+        ]);
+
+        // Redirect to the photos index with a success message
+        return redirect()->route('fotos.index')->with('success', 'Foto berhasil diperbarui!');
+    }
+
+    // Menghapus foto
+    public function destroy($id)
+    {
+        $foto = Foto::findOrFail($id);
+
+        // Pastikan foto milik user yang sedang login
+        if ($foto->UserID !== Auth::id()) {
+            return redirect()->route('fotos.index')->with('error', 'Unauthorized access');
+        }
+
+        $foto->delete();
+        return redirect()->route('fotos.index')->with('success', 'Foto berhasil dihapus!');
+    }
+}
+        </pre>
+      </code>
+      <a href="/Data_Souc/fotos.rar" download="/Data_Souc/fotos.rar"
+        >Download View Foto</a
+      >
+      <hr />
+      <h4>Komentar</h4>
+      <p>Ikuti DI bawah</p>
+      <ul class="list-group">
+        <li class="list-group-item">
+          <strong>Buat Model dan Migrasi:</strong>
+          <code id="code4"
+            >php artisan make:controller KomentarFotoController -mcr</code
+          >
+        </li>
+      </ul>
+      <pre>
+        <code>
+          Schema::create('komentar_foto', function (Blueprint $table) {
+            $table->id('KomentarID');
+            $table->unsignedBigInteger('FotoID');
+            $table->unsignedBigInteger('UserID');
+            $table->text('IsiKomentar');
+            $table->timestamp('TanggalKomentar');
+            $table->timestamps();
+
+            $table->foreign('FotoID')->references('FotoID')->on('fotos')->onDelete('cascade');
+            $table->foreign('UserID')->references('UserID')->on('users')->onDelete('cascade');
+        });
+        </code>
+      </pre>
+      <hr />
+      <h4>Model Komentar</h4>
+      <code>
+        <pre>
+        namespace App\Models;
+        use Illuminate\Database\Eloquent\Model;
+        class KomentarFoto extends Model
+        {
+            protected $table = 'komentar_foto';
+            protected $primaryKey = 'KomentarID';
+            protected $fillable = [
+                'FotoID',
+                'UserID',
+                'IsiKomentar',
+                'TanggalKomentar',
+            ];
+            public function foto()
+            {
+                return $this->belongsTo(Foto::class, 'FotoID');
+            }
+            public function user()
+            {
+                return $this->belongsTo(User::class, 'UserID');
+            }
+        }
+        </pre>
+      </code>
+      <hr />
+      <h4>Controller Komentar</h4>
+      <pre>
+        <code>
+          namespace App\Http\Controllers;
+
+use App\Models\KomentarFoto;
+use App\Models\Foto;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class KomentarFotoController extends Controller
+{
+    public function show($fotoId)
+    {
+        $foto = Foto::findOrFail($fotoId);
+        $komentars = KomentarFoto::where('FotoID', $fotoId)->get();
+
+        return view('fotos.show', compact('foto', 'komentars'));
+    }
+    // Menambahkan komentar baru ke dalam foto
+    public function store(Request $request, $fotoId)
+    {
+        $request->validate([
+            'IsiKomentar' => 'required|string|max:1000',
+        ]);
+    
+        KomentarFoto::create([
+            'FotoID' => $fotoId,
+            'UserID' => Auth::id(),
+            'IsiKomentar' => $request->IsiKomentar,
+            'TanggalKomentar' => now(),
+        ]);
+    
+        return redirect()->route('fotos.show', $fotoId)
+                         ->with('success', 'Komentar berhasil ditambahkan!');
+    }
+
+    public function destroy($fotoId, $komentarId)
+    {
+        // Cek apakah komentar ada dan milik user yang sedang login
+        $komentar = KomentarFoto::where('KomentarID', $komentarId)
+                                ->where('FotoID', $fotoId)
+                                ->first();
+    
+        if (!$komentar) {
+            return redirect()->back()->with('error', 'Komentar tidak ditemukan.');
+        }
+    
+        if ($komentar->UserID == Auth::id()) {
+            $komentar->delete();
+            return redirect()->route('fotos.show', $fotoId)->with('success', 'Komentar berhasil dihapus!');
+        }
+    
+        return redirect()->route('fotos.show', $fotoId)->with('error', 'Anda tidak dapat menghapus komentar ini.');
+    }    
+
+    public function update(Request $request, $fotoId, $komentarId)
+    {
+        $request->validate([
+            'IsiKomentar' => 'required|string|max:1000',
+        ]);
+    
+        $komentar = KomentarFoto::findOrFail($komentarId);
+    
+        // Pastikan hanya pemilik komentar yang bisa mengedit
+        if ($komentar->UserID !== Auth::id()) {
+            return redirect()->route('fotos.show', $fotoId)->with('error', 'Anda tidak memiliki izin untuk mengedit komentar ini.');
+        }
+    
+        $komentar->update([
+            'IsiKomentar' => $request->IsiKomentar,
+            'TanggalKomentar' => now(),
+        ]);
+    
+        return redirect()->route('fotos.show', $fotoId)->with('success', 'Komentar berhasil diperbarui!');
+    }
+}
+        </code>
+        <a href="/Data_Souc/komentar_foto.rar" download="/Data_Souc/komentar_foto.rar"
+          >Download Komentar Foto</a
+        >
+      </pre>
+      <hr />
+      <h4>Like Livewire</h4>
+      <p>📝Warning Jika Langkah ini sulit Mohon untuk tidak di Ikutin 
+        ini wajib Yang sudah bisa dan paham jika tidak paham Like Cari Versi 
+        di Internet Terima kasih
+      </p>
+      <ul class="list-group">
+        <li class="list-group-item">
+          <strong>Install Livewire:</strong>
+          <code>composer require livewire/livewire</code>
+        </li>
+        <li class="list-group-item">
+          <strong>Buat Component Like:</strong>
+          <code>php artisan make:livewire LikeFoto</code>
+        </li>
+        <hr>
+        <pre>
+
+        <code></code>
+        </pre>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
