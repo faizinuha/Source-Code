@@ -581,11 +581,157 @@ class KomentarFotoController extends Controller
           <code>php artisan make:livewire LikeFoto</code>
         </li>
         <hr>
+        <h5>Jika mau Gunakan Controller ini ( Not Fix )</h5>
+        Like controller
         <pre>
+        <code>
+          namespace App\Http\Controllers;
 
-        <code></code>
+          use Illuminate\Http\Request;
+          use Illuminate\Support\Facades\Auth;
+          use App\Models\LikeFoto;
+          use App\Models\Foto;
+          
+          class LikeFotoController extends Controller
+          {
+              // Fungsi untuk Like atau Unlike
+              public function toggleLike($fotoId)
+          {
+              $foto = Foto::findOrFail($fotoId);
+              $user = auth()->user();
+          
+              // Cek apakah foto sudah disukai oleh pengguna
+              $like = $foto->likes()->where('user_id', $user->id)->first();
+          
+              if ($like) {
+                  // Jika sudah disukai, hapus like
+                  $foto->likes()->detach($user->id);
+                  $status = 'unliked';
+              } else {
+                  // Jika belum disukai, tambahkan like
+                  $foto->likes()->attach($user->id);
+                  $status = 'liked';
+              }
+          
+              // Kembalikan status terbaru ke frontend
+              return response()->json(['status' => $status]);
+          }
+          
+          }
+        </code>
         </pre>
+        <hr>
+        <h5>Like Component</h5>
+        <pre>
+        <code>
+         
+namespace App\Livewire;
+
+use Livewire\Component;
+use App\Models\Foto;
+use App\Models\LikeFoto;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+class LikedanDislike extends Component
+{
+    public $fotoId;
+    public $userId;
+    public  $isLiked = false;
+
+    public function mount($fotoId, $userId)
+    {
+        $this->fotoId = $fotoId;
+        $this->userId = $userId;
+
+        // Cek apakah foto sudah disukai oleh user
+        $this->isLiked = LikeFoto::where('FotoID', $this->fotoId)
+                                  ->where('UserID', $this->userId)
+                                  ->exists();
+    }
+    public function likeFoto()
+    {
+        if (!$this->isLiked) {
+            LikeFoto::create([
+                'FotoID' => $this->fotoId,
+                'UserID' => $this->userId,
+                'TanggalLike' => Carbon::now(),
+            ]);
+            $this->isLiked = true;
+        }
+    }
+     // Fungsi untuk dislike foto
+     public function dislikeFoto()
+     {
+         if ($this->isLiked) {
+             LikeFoto::where('FotoID', $this->fotoId)
+                     ->where('UserID', $this->userId)
+                     ->delete();
+             $this->isLiked = false;
+         }
+     }
+    public function render()
+    {
+
+        // Ambil data like-like yang ada pada foto tersebut
+        $likes = LikeFoto::where('FotoID', $this->fotoId)->get();
+        // Ambil jumlah like-like yang ada pada foto tersebut
+        $totalLikes = LikeFoto::where('FotoID', $this->fotoId)->count();
+
+        return view('livewire.likedan-dislike', compact(  'likes', 'totalLikes'));
+    }
+}
+        </pre>
+        <hr>
+        <h3>Migrasi</h3>
+        <pre>
+            <code>
+              Schema::create('likefoto', function (Blueprint $table) {
+                $table->id('LikeID');
+                $table->unsignedBigInteger('FotoID');
+                $table->unsignedBigInteger('UserID');
+                $table->date('TanggalLike');
+                $table->timestamps();
+    
+                $table->foreign('FotoID')->references('FotoID')->on('fotos')->onDelete('cascade');
+                $table->foreign('UserID')->references('UserID')->on('users')->onDelete('cascade');
+            });
+          </code>
+        </pre>
+        <hr>
+        <h3>Model</h3>
+        <pre>
+          <code>
+            
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class LikeFoto extends Model
+{
+    // protected $primaryKey = 'LikeID';
+    protected $table = 'likefoto';  // Pastikan tabelnya sesuai
+    protected $primaryKey = 'LikeID';  // Primary key sesuai
+    protected $fillable = ['FotoID', 'UserID', 'TanggalLike'];
+
+    public $timestamps = true;
+
+    public function foto()
+    {
+        return $this->belongsTo(Foto::class, 'FotoID');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'UserID');
+    }
+}
+          </code>
+        </pre>
+        <a href="/Data_Souc/livewire.rar">Download komponen Like Live</a>
+      </ul>
+      <a href="/Data_Souc">Download all</a>
+        <hr>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
