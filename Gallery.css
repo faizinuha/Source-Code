@@ -1,0 +1,56 @@
+p, h2, h4, hr, ol > li, strong, a, pre > code {
+  border: 3px solid transparent;
+  color: #333; /* Warna teks */
+  font-family: Arial, sans-serif; /* Font default */
+  padding: 5px; /* Spasi dalam */
+  margin-bottom: 10px; /* Jarak antar elemen */
+}
+
+p {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #007BFF; /* Biru */
+}
+
+h4 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #28A745; /* Hijau */
+}
+
+hr {
+  border-top: 2px solid #888;
+  margin: 15px 0;
+}
+
+ol > li {
+  font-size: 16px;
+  list-style: decimal;
+}
+
+strong {
+  font-weight: bold;
+  color: #D9534F; /* Merah */
+}
+
+a {
+  text-decoration: none;
+  color: #17A2B8; /* Biru muda */
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+pre > code {
+  background-color: #F8F9FA;
+  padding: 8px;
+  border-radius: 5px;
+  display: block;
+  font-family: "Courier New", monospace;
+}
